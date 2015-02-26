@@ -16,18 +16,18 @@ Param(
   [string]$ExpandTo,
 
   [Parameter(Mandatory=$false,
-    HelpMessage='Do you want a progress bar?')]
-  [switch]$Silent=$false,
+    HelpMessage='Do you want the Windows copy progress bar? (Default: NO)')]
+  [switch]$Silent=$true,
 
   [Parameter(Mandatory=$false,
-    HelpMessage='Over-write destination files?')]
+    HelpMessage='Over-write destination files? (Default: YES)')]
   [switch]$NoOverwrite=$false
  )
 
 # The flags I use while copying to destination below
 # Got from https://technet.microsoft.com/en-us/library/ee176633.aspx
 # 0x10 => overwrite; 0x4 => silent; add these two if you want silent & overwrite
-# I will stick with 0x10 as default and change to 0x14 if $Silent is specified
+# I will stick with 0x14 as default
 if ($Silent) { 
     if ($NoOverwrite) { $CopyFlags = 0x4 } else { $CopyFlags = 0x14 }
 } else {
@@ -50,14 +50,20 @@ $Shell = New-Object -ComObject shell.application
 # See https://msdn.microsoft.com/en-us/library/windows/desktop/bb774085%28v=vs.85%29.aspx
 $ZipFile = $Shell.NameSpace($FileName)
 
+# This is for the progress report below
+$ItemCount = 0
+$TotalCount = $ZipFile.Items().Count
+
 # Enumerate the contents of the Zip file by going through each item in it. 
-ForEach ($Item in $ZipFile.items()) {
+ForEach ($Item in $ZipFile.Items()) {
     # This time we create a Folder object to the destination path and use the CopyHere() method. 
     # See https://msdn.microsoft.com/en-us/library/windows/desktop/bb787866%28v=vs.85%29.aspx
     # This method takes a second flag which determines options for the Copy process. Above link has details. 
     # Not sure if those numbers are accurate though. I found another link - https://technet.microsoft.com/en-us/library/ee176633.aspx - 
     # based on which I decided to use 0x10 or 0x14 depending on what the user wants (see the variable $CopyFlags above)
+    Write-Progress -Activity "Copying to $ExpandTo" -CurrentOperation "File: $($Item.Name)" -PercentComplete $($ItemCount/$TotalCount*100)
     $Shell.Namespace($ExpandTo).copyhere($Item, $CopyFlags)
+    $ItemCount++
 }
 
 # Remove the temp file if I was given a stream of bytes
