@@ -13,8 +13,26 @@ Param(
   [Parameter(Mandatory=$false,
     HelpMessage='Absolute path to a pre-existing folder you would like to extract to')]
   [ValidateScript({($_ -match "^[a-z]\:.*") -and (Test-Path -PathType Container $_)})]
-  [string]$ExpandTo
-)
+  [string]$ExpandTo,
+
+  [Parameter(Mandatory=$false,
+    HelpMessage='Do you want a progress bar?')]
+  [switch]$Silent=$false,
+
+  [Parameter(Mandatory=$false,
+    HelpMessage='Over-write destination files?')]
+  [switch]$NoOverwrite=$false
+ )
+
+# The flags I use while copying to destination below
+# Got from https://technet.microsoft.com/en-us/library/ee176633.aspx
+# 0x10 => overwrite; 0x4 => silent; add these two if you want silent & overwrite
+# I will stick with 0x10 as default and change to 0x14 if $Silent is specified
+if ($Silent) { 
+    if ($NoOverwrite) { $CopyFlags = 0x4 } else { $CopyFlags = 0x14 }
+} else {
+    if ($NoOverwrite) { $CopyFlags = 0x0 } else { $CopyFlags = 0x10 }
+}
 
 # Abort if a filename or stream are not given. Discovered this during testing. Rookie mistake! 
 if (!$Content -and !$FileName) { throw "You must specify a filename or a stream of bytes. Aborting!" }
@@ -38,8 +56,8 @@ ForEach ($Item in $ZipFile.items()) {
     # See https://msdn.microsoft.com/en-us/library/windows/desktop/bb787866%28v=vs.85%29.aspx
     # This method takes a second flag which determines options for the Copy process. Above link has details. 
     # Not sure if those numbers are accurate though. I found another link - https://technet.microsoft.com/en-us/library/ee176633.aspx - 
-    # based on which I decided to use 0x14 (0x4 no dialog box + 0x10 yes to all) => show no progress & overwrite whatever files exist
-    $Shell.Namespace($ExpandTo).copyhere($Item, 0x14)
+    # based on which I decided to use 0x10 or 0x14 depending on what the user wants (see the variable $CopyFlags above)
+    $Shell.Namespace($ExpandTo).copyhere($Item, $CopyFlags)
 }
 
 # Remove the temp file if I was given a stream of bytes
