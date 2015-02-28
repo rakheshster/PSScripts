@@ -21,7 +21,7 @@ Param(
 
   [Parameter(Mandatory=$false,
     HelpMessage='Over-write destination files? (Default: YES)')]
-  [switch]$NoOverwrite=$false
+  [switch]$NoClobber=$false
  )
 
 # The flags I use while copying to destination below
@@ -29,9 +29,9 @@ Param(
 # 0x10 => overwrite; 0x4 => silent; add these two if you want silent & overwrite
 # I will stick with 0x14 as default
 if ($Silent) { 
-    if ($NoOverwrite) { $CopyFlags = 0x4 } else { $CopyFlags = 0x14 }
+    if ($NoClobber) { $CopyFlags = 0x4 } else { $CopyFlags = 0x14 }
 } else {
-    if ($NoOverwrite) { $CopyFlags = 0x0 } else { $CopyFlags = 0x10 }
+    if ($NoClobber) { $CopyFlags = 0x0 } else { $CopyFlags = 0x10 }
 }
 
 # Abort if a filename or stream are not given. Discovered this during testing. Rookie mistake! 
